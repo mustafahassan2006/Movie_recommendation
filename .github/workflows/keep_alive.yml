@@ -1,0 +1,43 @@
+name: Streamlit Headless Visit
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'  # Runs every 30 minutes
+  workflow_dispatch:        # Allows you to test it manually anytime
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Playwright & Browsers
+        run: |
+          npm install playwright
+          npx playwright install chromium --with-deps
+
+      - name: Visit App
+        run: |
+          node -e "
+          const { chromium } = require('playwright');
+          (async () => {
+            const browser = await chromium.launch();
+            const page = await browser.newPage();
+            console.log('Navigating to app...');
+            await page.goto('https://movierecommendation-mkcurat4sohg9hxzsptswg.streamlit.app/');
+            await page.waitForTimeout(6000);
+            
+            const button = await page.\$('button:has-text(\"Yes, get this app back up!\")');
+            if (button) {
+              console.log('App was sleeping. Clicking wake-up button...');
+              await button.click();
+              await page.waitForTimeout(10000);
+            } else {
+              console.log('App is already active.');
+            }
+            await browser.close();
+          })();
+          "
